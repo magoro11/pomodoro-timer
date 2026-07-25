@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tomato Timer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg: #1f2a22;
+    --bg-alt: #263329;
+    --panel: #2b3a2e;
+    --cream: #fbf7ec;
+    --cream-dim: #d9d2c1;
+    --tomato: #c1440e;
+    --tomato-dark: #8c2f0b;
+    --tomato-glow: rgba(193,68,14,0.35);
+    --vine: #5b8c5a;
+    --vine-dark: #3e6440;
+    --ink: #1c1712;
+    --ring-track: rgba(251,247,236,0.10);
+  }
+
+  *{ box-sizing: border-box; }
+
+  html,body{
+    margin:0;
+    min-height:100%;
+    background:
+      radial-gradient(circle at 15% 8%, rgba(91,140,90,0.18), transparent 45%),
+      radial-gradient(circle at 85% 95%, rgba(193,68,14,0.12), transparent 40%),
+      var(--bg);
+    color: var(--cream);
+    font-family: 'Inter', sans-serif;
+    display:flex;
+    justify-content:center;
+    padding: 40px 16px 56px;
+  }
+
+  .app{
+    width: 100%;
+    max-width: 380px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+
+  .eyebrow{
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--vine);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  h1{
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 30px;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+
+  .sub{
+    margin: 0 0 30px;
+    font-size: 13.5px;
+    color: var(--cream-dim);
+    text-align:center;
+    line-height:1.5;
+    max-width: 260px;
+  }
+
+  /* ---- Dial ---- */
+  .dial-wrap{
+    position:relative;
+    width: 264px;
+    height: 264px;
+    margin-bottom: 26px;
+  }
+
+  .stem{
+    position:absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 22px;
+    height: 26px;
+    background: linear-gradient(180deg, var(--vine), var(--vine-dark));
+    border-radius: 6px 6px 3px 3px;
+    z-index: 2;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+  .stem::before,
+  .stem::after{
+    content:'';
+    position:absolute;
+    top: -6px;
+    width: 16px;
+    height: 16px;
+    background: var(--vine);
+    border-radius: 60% 0 60% 0;
+  }
+  .stem::before{ left: -10px; transform: rotate(20deg); }
+  .stem::after{ right: -10px; transform: rotate(-100deg); }
+
+  svg.dial{
+    width: 100%;
+    height: 100%;
+    display:block;
+    filter: drop-shadow(0 10px 24px rgba(0,0,0,0.35));
+  }
+
+  .dial-face{
+    fill: var(--panel);
+    stroke: rgba(0,0,0,0.25);
+    stroke-width: 1;
+  }
+
+  .tick{
+    stroke: rgba(251,247,236,0.28);
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+  .tick.major{
+    stroke: rgba(251,247,236,0.5);
+    stroke-width: 3;
+  }
+
+  .ring-track{
+    fill:none;
+    stroke: var(--ring-track);
+    stroke-width: 10;
+  }
+  .ring-progress{
+    fill:none;
+    stroke: var(--tomato);
+    stroke-width: 10;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.3s linear, stroke 0.3s ease;
+  }
+  .ring-progress.break-mode{
+    stroke: var(--vine);
+  }
+
+  .center-text{
+    position:absolute;
+    inset: 0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+  }
+
+  .mode-label{
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--tomato);
+    font-weight: 700;
+    margin-bottom: 6px;
+    transition: color 0.3s ease;
+  }
+  .mode-label.break{ color: var(--vine); }
+
+  .time{
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 52px;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .btn-row{
+    display:flex;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  button{
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    border-radius: 999px;
+    padding: 9px 20px;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  }
+  button:active{ transform: scale(0.96); }
+  button:focus-visible{ outline: 2px solid var(--cream); outline-offset: 2px; }
+
+  .btn-primary{
+    background: var(--tomato);
+    color: var(--cream);
+    box-shadow: 0 6px 16px var(--tomato-glow);
+  }
+  .btn-primary:hover{ filter: brightness(1.08); }
+  .btn-primary.is-running{
+    background: var(--tomato-dark);
+  }
+
+  .btn-ghost{
+    background: transparent;
+    color: var(--cream-dim);
+    border: 1px solid rgba(251,247,236,0.25);
+  }
+  .btn-ghost:hover{ border-color: var(--cream); color: var(--cream); }
+
+  /* ---- Length knobs ---- */
+  .knobs{
+    display:flex;
+    gap: 14px;
+    width: 100%;
+    margin-bottom: 22px;
+  }
+
+  .knob{
+    flex:1;
+    background: var(--panel);
+    border-radius: 16px;
+    padding: 14px 10px 12px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    box-shadow: inset 0 1px 0 rgba(251,247,236,0.06), 0 4px 10px rgba(0,0,0,0.2);
+  }
+
+  .knob-controls{
+    display:flex;
+    align-items:center;
+    gap: 14px;
+    margin-bottom: 8px;
+  }
+
+  .stepper{
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(251,247,236,0.08);
+    color: var(--cream);
+    font-size: 15px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0;
+    line-height:1;
+  }
+  .stepper:hover:not(:disabled){ background: rgba(251,247,236,0.16); }
+  .stepper:disabled{ opacity: 0.35; cursor: not-allowed; }
+
+  .knob-value{
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 22px;
+    min-width: 30px;
+    text-align:center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .knob-label{
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+    font-weight: 600;
+  }
+
+  /* ---- Session tracker: little tomatoes ---- */
+  .tracker{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap: 10px;
+  }
+
+  .tomatoes{
+    display:flex;
+    gap: 7px;
+    flex-wrap: wrap;
+    justify-content:center;
+    max-width: 260px;
+  }
+
+  .tomato-dot{
+    width: 14px;
+    height: 14px;
+    border-radius: 50% 50% 55% 55%;
+    background: rgba(251,247,236,0.10);
+    position: relative;
+    transition: background 0.3s ease, transform 0.3s ease;
+  }
+  .tomato-dot::before{
+    content:'';
+    position:absolute;
+    top: -3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 4px;
+    background: rgba(251,247,236,0.10);
+    border-radius: 2px;
+    transition: background 0.3s ease;
+  }
+  .tomato-dot.filled{
+    background: var(--tomato);
+    transform: scale(1.05);
+  }
+  .tomato-dot.filled::before{
+    background: var(--vine);
+  }
+
+  .tracker-caption{
+    font-size: 12.5px;
+    color: var(--cream-dim);
+    text-align:center;
+  }
+  .tracker-caption b{
+    color: var(--cream);
+    font-weight: 700;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="eyebrow">Focus Room</div>
+  <h1>Tomato Timer</h1>
+  <p class="sub">Twenty-five minutes of focus, five to breathe — the classic pomodoro rhythm.</p>
+
+  <div class="dial-wrap">
+    <div class="stem"></div>
+    <svg class="dial" viewBox="0 0 240 240">
+      <circle class="dial-face" cx="120" cy="120" r="108"></circle>
+      <g id="ticks"></g>
+      <circle class="ring-track" cx="120" cy="120" r="98"></circle>
+      <circle id="ringProgress" class="ring-progress" cx="120" cy="120" r="98"
+              transform="rotate(-90 120 120)"></circle>
+    </svg>
+    <div class="center-text">
+      <div class="mode-label" id="modeLabel">Session</div>
+      <div class="time" id="timeDisplay">25:00</div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-primary" id="startBtn">Start</button>
+    <button class="btn-ghost" id="resetBtn">Reset</button>
+  </div>
+
+  <div class="knobs" style="margin-top:26px;">
+    <div class="knob">
+      <div class="knob-controls">
+        <button class="stepper" id="breakMinus">–</button>
+        <div class="knob-value" id="breakValue">5</div>
+        <button class="stepper" id="breakPlus">+</button>
+      </div>
+      <div class="knob-label">Break Length</div>
+    </div>
+    <div class="knob">
+      <div class="knob-controls">
+        <button class="stepper" id="sessionMinus">–</button>
+        <div class="knob-value" id="sessionValue">25</div>
+        <button class="stepper" id="sessionPlus">+</button>
+      </div>
+      <div class="knob-label">Session Length</div>
+    </div>
+  </div>
+
+  <div class="tracker">
+    <div class="tomatoes" id="tomatoes"></div>
+    <div class="tracker-caption" id="caption"><b>0</b> sessions completed today</div>
+  </div>
+</div>
+
+<script>
+  const state = {
+    sessionLen: 25,
+    breakLen: 5,
+    mode: 'session',
+    remaining: 25 * 60,
+    running: false,
+    completed: 0,
+    intervalId: null
+  };
+
+  const el = {
+    time: document.getElementById('timeDisplay'),
+    modeLabel: document.getElementById('modeLabel'),
+    startBtn: document.getElementById('startBtn'),
+    resetBtn: document.getElementById('resetBtn'),
+    ring: document.getElementById('ringProgress'),
+    sessionValue: document.getElementById('sessionValue'),
+    breakValue: document.getElementById('breakValue'),
+    sessionMinus: document.getElementById('sessionMinus'),
+    sessionPlus: document.getElementById('sessionPlus'),
+    breakMinus: document.getElementById('breakMinus'),
+    breakPlus: document.getElementById('breakPlus'),
+    tomatoes: document.getElementById('tomatoes'),
+    caption: document.getElementById('caption'),
+    ticks: document.getElementById('ticks')
+  };
+
+  const R = 98;
+  const CIRC = 2 * Math.PI * R;
+  el.ring.style.strokeDasharray = CIRC;
+
+  // draw tick marks
+  (function drawTicks(){
+    const cx = 120, cy = 120, rOuter = 108, rInnerMinor = 100, rInnerMajor = 96;
+    for(let i = 0; i < 60; i++){
+      const angle = (i / 60) * 2 * Math.PI - Math.PI/2;
+      const major = i % 5 === 0;
+      const rInner = major ? rInnerMajor : rInnerMinor;
+      const x1 = cx + rOuter * Math.cos(angle);
+      const y1 = cy + rOuter * Math.sin(angle);
+      const x2 = cx + rInner * Math.cos(angle);
+      const y2 = cy + rInner * Math.sin(angle);
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1', x1.toFixed(2));
+      line.setAttribute('y1', y1.toFixed(2));
+      line.setAttribute('x2', x2.toFixed(2));
+      line.setAttribute('y2', y2.toFixed(2));
+      line.setAttribute('class', 'tick' + (major ? ' major' : ''));
+      el.ticks.appendChild(line);
+    }
+  })();
+
+  function formatTime(sec){
+    const m = Math.floor(sec / 60).toString().padStart(2,'0');
+    const s = Math.floor(sec % 60).toString().padStart(2,'0');
+    return m + ':' + s;
+  }
+
+  function totalForMode(mode){
+    return (mode === 'session' ? state.sessionLen : state.breakLen) * 60;
+  }
+
+  function render(){
+    el.time.textContent = formatTime(state.remaining);
+    el.modeLabel.textContent = state.mode === 'session' ? 'Session' : 'Break';
+    el.modeLabel.classList.toggle('break', state.mode === 'break');
+    el.ring.classList.toggle('break-mode', state.mode === 'break');
+
+    const total = totalForMode(state.mode);
+    const frac = total > 0 ? state.remaining / total : 0;
+    el.ring.style.strokeDashoffset = CIRC * (1 - frac);
+
+    el.startBtn.textContent = state.running ? 'Pause' : 'Start';
+    el.startBtn.classList.toggle('is-running', state.running);
+
+    el.sessionValue.textContent = state.sessionLen;
+    el.breakValue.textContent = state.breakLen;
+
+    const disableAdjust = state.running;
+    el.sessionMinus.disabled = disableAdjust || state.sessionLen <= 5;
+    el.sessionPlus.disabled = disableAdjust || state.sessionLen >= 60;
+    el.breakMinus.disabled = disableAdjust || state.breakLen <= 1;
+    el.breakPlus.disabled = disableAdjust || state.breakLen >= 30;
+
+    renderTomatoes();
+    el.caption.innerHTML = '<b>' + state.completed + '</b> session' + (state.completed === 1 ? '' : 's') + ' completed today';
+  }
+
+  function renderTomatoes(){
+    const slots = Math.max(8, state.completed);
+    el.tomatoes.innerHTML = '';
+    for(let i = 0; i < slots; i++){
+      const dot = document.createElement('div');
+      dot.className = 'tomato-dot' + (i < state.completed ? ' filled' : '');
+      el.tomatoes.appendChild(dot);
+    }
+  }
+
+  function beep(){
+    try{
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 660;
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.55);
+    }catch(e){ /* audio not available */ }
+  }
+
+  function tick(){
+    state.remaining -= 1;
+    if(state.remaining <= 0){
+      beep();
+      if(state.mode === 'session'){
+        state.completed += 1;
+        state.mode = 'break';
+      } else {
+        state.mode = 'session';
+      }
+      state.remaining = totalForMode(state.mode);
+    }
+    render();
+  }
+
+  function start(){
+    state.running = true;
+    state.intervalId = setInterval(tick, 1000);
+    render();
+  }
+
+  function pause(){
+    state.running = false;
+    clearInterval(state.intervalId);
+    render();
+  }
+
+  el.startBtn.addEventListener('click', () => {
+    if(state.running) pause(); else start();
+  });
+
+  el.resetBtn.addEventListener('click', () => {
+    pause();
+    state.mode = 'session';
+    state.remaining = totalForMode('session');
+    render();
+  });
+
+  function adjust(kind, delta){
+    if(state.running) return;
+    if(kind === 'session'){
+      state.sessionLen = Math.min(60, Math.max(5, state.sessionLen + delta));
+      if(state.mode === 'session') state.remaining = totalForMode('session');
+    } else {
+      state.breakLen = Math.min(30, Math.max(1, state.breakLen + delta));
+      if(state.mode === 'break') state.remaining = totalForMode('break');
+    }
+    render();
+  }
+
+  el.sessionMinus.addEventListener('click', () => adjust('session', -1));
+  el.sessionPlus.addEventListener('click', () => adjust('session', 1));
+  el.breakMinus.addEventListener('click', () => adjust('break', -1));
+  el.breakPlus.addEventListener('click', () => adjust('break', 1));
+
+  render();
+</script>
+
+</body>
+</html>
