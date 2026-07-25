@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Tomato Timer</title>
+<title>Bright Timer</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -254,10 +254,11 @@
   .knob-value{
     font-family: 'Fraunces', serif;
     font-weight: 600;
-    font-size: 22px;
-    min-width: 30px;
+    font-size: 19px;
+    min-width: 54px;
     text-align:center;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
 
   .knob-label{
@@ -328,8 +329,8 @@
 
 <div class="app">
   <div class="eyebrow">Focus Room</div>
-  <h1>Tomato Timer</h1>
-  <p class="sub">Twenty-five minutes of focus, five to breathe — the classic pomodoro rhythm.</p>
+  <h1>Bright Timer</h1>
+  <p class="sub">Set your own focus and break lengths, then start the clock.</p>
 
   <div class="dial-wrap">
     <div class="stem"></div>
@@ -430,9 +431,20 @@
   })();
 
   function formatTime(sec){
-    const m = Math.floor(sec / 60).toString().padStart(2,'0');
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60).toString().padStart(2,'0');
     const s = Math.floor(sec % 60).toString().padStart(2,'0');
-    return m + ':' + s;
+    if(h > 0){
+      return h + ':' + m + ':' + s;
+    }
+    return Math.floor(sec / 60).toString().padStart(2,'0') + ':' + s;
+  }
+
+  function formatKnobValue(min){
+    if(min < 60) return String(min);
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return h + 'h' + (m ? ' ' + m + 'm' : '');
   }
 
   function totalForMode(mode){
@@ -452,12 +464,12 @@
     el.startBtn.textContent = state.running ? 'Pause' : 'Start';
     el.startBtn.classList.toggle('is-running', state.running);
 
-    el.sessionValue.textContent = state.sessionLen;
-    el.breakValue.textContent = state.breakLen;
+    el.sessionValue.textContent = formatKnobValue(state.sessionLen);
+    el.breakValue.textContent = formatKnobValue(state.breakLen);
 
     const disableAdjust = state.running;
     el.sessionMinus.disabled = disableAdjust || state.sessionLen <= 5;
-    el.sessionPlus.disabled = disableAdjust || state.sessionLen >= 60;
+    el.sessionPlus.disabled = disableAdjust || state.sessionLen >= 240;
     el.breakMinus.disabled = disableAdjust || state.breakLen <= 1;
     el.breakPlus.disabled = disableAdjust || state.breakLen >= 30;
 
@@ -532,7 +544,7 @@
   function adjust(kind, delta){
     if(state.running) return;
     if(kind === 'session'){
-      state.sessionLen = Math.min(60, Math.max(5, state.sessionLen + delta));
+      state.sessionLen = Math.min(240, Math.max(5, state.sessionLen + delta));
       if(state.mode === 'session') state.remaining = totalForMode('session');
     } else {
       state.breakLen = Math.min(30, Math.max(1, state.breakLen + delta));
